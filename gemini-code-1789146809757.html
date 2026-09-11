@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Print Farm Shop - FlowQ Powered</title>
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px 20px; margin: 0; }
+        .container { max-width: 520px; margin: 0 auto; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 32px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); }
+        h1 { font-size: 1.5rem; margin-top: 0; color: #38bdf8; }
+        .upload-box { border: 2px dashed #475569; padding: 24px; text-align: center; border-radius: 8px; margin: 20px 0; background: #0f172a; }
+        input[type="file"] { display: none; }
+        label.upload-btn { background: #0284c7; color: white; padding: 10px 20px; border-radius: 6px; cursor: pointer; display: inline-block; font-weight: 600; }
+        .price-card { background: #0f172a; border-left: 4px solid #38bdf8; padding: 16px; margin: 20px 0; border-radius: 4px; }
+        .price-val { font-size: 1.8rem; font-weight: bold; color: #4ade80; }
+        button.order-btn { width: 100%; background: #22c55e; color: white; border: none; padding: 14px; font-size: 1rem; font-weight: bold; border-radius: 6px; cursor: pointer; }
+        button.order-btn:hover { background: #16a34a; }
+        input[type="text"] { width: 100%; padding: 12px; background: #0f172a; border: 1px solid #334155; color: white; border-radius: 6px; margin-bottom: 16px; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Bambu 3D-Druck Upload</h1>
+    <p style="color: #94a3b8; font-size: 0.9rem;">Lade deine Bambu Lab Datei (.3mf / .gcode) hoch. Der Preis berechnet sich automatisch mit 0,50 € pro 0,50g Filament.</p>
+
+    <div class="upload-box">
+        <label for="fileInput" class="upload-btn">Datei auswählen</label>
+        <input type="file" id="fileInput" accept=".3mf,.gcode" onchange="handleFileUpload()">
+        <p id="fileNameDisplay" style="color: #94a3b8; font-size: 0.85rem; margin-top: 10px;">Keine Datei gewählt</p>
+    </div>
+
+    <div id="quoteResult" style="display: none;">
+        <div class="price-card">
+            <div>Berechnetes Filament: <strong id="weightVal">0</strong> g</div>
+            <div style="margin-top: 8px;">Gesamtpreis:</div>
+            <div class="price-val" id="priceVal">0,00 €</div>
+        </div>
+
+        <input type="text" id="custName" placeholder="Dein Name / Kundenreferenz">
+        <button class="order-btn" onclick="submitOrder()">Kostenpflichtig drucken & starten</button>
+    </div>
+</div>
+
+<script>
+let currentFileId = null;
+
+async function handleFileUpload() {
+    const fileInput = document.getElementById('fileInput');
+    if (!fileInput.files[0]) return;
+
+    document.getElementById('fileNameDisplay').innerText = fileInput.files[0].name;
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    const response = await fetch('/api/quote', { method: 'POST', body: formData });
+    const data = await response.json();
+
+    if (data.fileId) {
+        currentFileId = data.fileId;
+        document.getElementById('weightVal').innerText = data.weightGrams;
+        document.getElementById('priceVal').innerText = data.priceEuro + ' €';
+        document.getElementById('quoteResult').style.display = 'block';
+    }
+}
+
+async function submitOrder() {
+    const name = document.getElementById('custName').value;
+    if (!name) return alert('Bitte gib deinen Namen ein.');
+
+    const response = await fetch('/api/order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileId: currentFileId, customerName: name })
+    });
+
+    const result = await response.json();
+    if (result.success) {
+        alert('Bestellung erfolgreich! Druck wurde in FlowQ gestartet. Job-ID: ' + result.jobId);
+        location.reload();
+    } else {
+        alert('Fehler: ' + (result.details?.message || result.error));
+    }
+}
+</script>
+
+</body>
+</html>
