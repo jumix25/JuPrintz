@@ -1,3 +1,0 @@
-PORT=3000
-FLOWQ_API_URL=https://api.infinityflow3d.com
-FLOWQ_API_KEY=adb3fb41-98a4-411e-8613-d21f7ee7a5bb.67YMtqt9nKp8ivXxTuK5LwBXc0rXzLSEsRO57ZJTVT4
